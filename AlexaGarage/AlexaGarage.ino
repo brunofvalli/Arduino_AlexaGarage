@@ -44,8 +44,8 @@ void outletTwoOn();
 void outletTwoOff();
 
 // Change this before you flash
-const char* ssid = "Skynet";
-const char* password = "8039795700";
+const char* ssid = "5124EscambiaTerr";
+const char* password = "M4v1e?Brun0";
 
 boolean wifiConnected = false;
 
@@ -89,8 +89,8 @@ void setup()
 
     // Define your switches here. Max 14
     // Format: Alexa invocation name, local port no, on callback, off callback
-    lightOne = new Switch("Light One", 80, lightOneOn, lightOneOff);
-    lightTwo = new Switch("Light Two", 81, lightTwoOn, lightTwoOff);
+    lightOne = new Switch("Garage1", 80, lightOneOn, lightOneOff);
+    lightTwo = new Switch("Garage2", 81, lightTwoOn, lightTwoOff);
     outletOne = new Switch("Outlet One", 82, outletOneOn, outletOneOff);
     outletTwo = new Switch("Outlet Two", 83, outletTwoOn, outletTwoOff);
 
