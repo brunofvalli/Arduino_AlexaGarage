@@ -1,178 +1,235 @@
-/**********************************************************************************
- *  TITLE: Alexa control 5 channel Relay Module using NodeMCU or ESP32
- *  Click on the following links to learn more. 
- *  YouTube Video: https://youtu.be/tIFEtHVLexw
- *  Related Blog : https://easyelectronicsproject.com/esp32-projects/
- *  by Subhajit (Tech StudyCell)
- *  
- *  Download the libraries:
- *  https://github.com/Aircoookie/Espalexa
- *  
- *  Preferences--> Aditional boards Manager URLs : 
- *  https://dl.espressif.com/dl/package_esp32_index.json, http://arduino.esp8266.com/stable/package_esp8266com_index.json
- *  
- *  Download Board:
- *  For ESP8266 NodeMCU (2.5.1): https://github.com/esp8266/Arduino
- *  For ESP32                  : https://github.com/espressif/arduino-esp32
- **********************************************************************************/
+/******************************************
+   The unmodified version of this code is originally
+   by kakopappa and can be found at  http://bit.ly/2kKQiRg.
 
-#ifdef ARDUINO_ARCH_ESP32
-#include <WiFi.h>
-#else
+   This version of the code has been modified by Charles Gantt
+   and requires five additional files which can be found at  http://bit.ly/2kKQiRg.
+
+   Find out more about this project on Charles' website
+    http://bit.ly/2kKQiRg.
+
+   Follow Charles and TheMakersWorkbench on the following sites:
+   YouTube: bit.ly/TMWB-on-YouTube
+   TMWB on Facebook: bit.ly/TMWB-on-Facebook
+   CJGanttMakes on Facebook: bit.ly/CJGanttMakes
+   TMWB on Twitter: bit.ly/TMWB-on-Twitter
+   Charles Gantt on Twitter: bit.ly/CJGanttOnTwitter
+   Instructables: bit.ly/CJGanttOnInstructables
+   TMWB Website: bit.ly/TheMakersWorkbench
+   Charles Gantt on Element14: bit.ly/CJGantt-On-E14
+   Charles Gantt on GitHub: bit.ly/CJGantt-on-Github
+*/
+
 #include <ESP8266WiFi.h>
-#endif
-#include <Espalexa.h>
-// define the GPIO connected with Relays
-#define RelayPin1 5  //D1
-#define RelayPin2 4  //D2
-#define RelayPin3 13 //D7
-#define RelayPin4 14 //D5
-#define RelayPin5 12 //D6
+#include <ESP8266WebServer.h>
+#include <WiFiUdp.h>
+#include <functional>
+#include "switch.h"
+#include "UpnpBroadcastResponder.h"
+#include "CallbackFunction.h"
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
 
 // prototypes
 boolean connectWifi();
 
-//callback functions
-void firstLightChanged(uint8_t brightness);
-void secondLightChanged(uint8_t brightness);
-void thirdLightChanged(uint8_t brightness);
-void fourthLightChanged(uint8_t brightness);
-void fifthLightChanged(uint8_t brightness);
+//on/off callbacks
+void lightOneOn();
+void lightOneOff();
+void lightTwoOn();
+void lightTwoOff();
+void outletOneOn();
+void outletOneOff();
+void outletTwoOn();
+void outletTwoOff();
 
-// WiFi Credentials
-const char* ssid = "5124EscambiaTerr";
-const char* password = "M4v1e?Brun0";
-
-// device names
-String Device_1_Name = "Garage1";
-String Device_2_Name = "Garage2";
-String Device_3_Name = "Open1";
-String Device_4_Name = "Open2";
-String Device_5_Name = "Open3";
+// Change this before you flash
+const char* ssid = "Skynet";
+const char* password = "8039795700";
 
 boolean wifiConnected = false;
 
-Espalexa espalexa;
+UpnpBroadcastResponder upnpBroadcastResponder;
+
+Switch *lightOne = NULL;
+Switch *lightTwo = NULL;
+Switch *outletOne = NULL;
+Switch *outletTwo = NULL;
+
+// Set Relay Pins
+int relayOne = 14;
+int relayTwo = 15;
+int relayThree = 03;
+int relayFour = 01;
+
+// Addr: 0x3F, 20 chars & 4 lines. Sometimes display boards use address 0x27
+LiquidCrystal_I2C lcd(0x3F, 4, 20); //Frentally display, use 0x3F if not working try 0x27
 
 void setup()
 {
-  Serial.begin(115200);
+  //Initalize LCD
+  lcd.init();
+  lcd.noBacklight();
+  lcd.backlight();
+  lcd.begin(20, 4);
 
-  pinMode(RelayPin1, OUTPUT);
-  pinMode(RelayPin2, OUTPUT);
-  pinMode(RelayPin3, OUTPUT);
-  pinMode(RelayPin4, OUTPUT);
-  pinMode(RelayPin5, OUTPUT);
+  //Serial.begin(115200);
 
   // Initialise wifi connection
   wifiConnected = connectWifi();
+  //Serial.print("WiFi Connected");
 
-  if (wifiConnected)
-  {
-    // Define your devices here.
-    espalexa.addDevice(Device_1_Name, firstLightChanged); //simplest definition, default state off
-    espalexa.addDevice(Device_2_Name, secondLightChanged);
-    espalexa.addDevice(Device_3_Name, thirdLightChanged);
-    espalexa.addDevice(Device_4_Name, fourthLightChanged);
-    espalexa.addDevice(Device_5_Name, fifthLightChanged);
+  if (wifiConnected) {
+    upnpBroadcastResponder.beginUdpMulticast();
 
-    espalexa.begin();
-  }
-  else
-  {
-    while (1)
-    {
-      Serial.println("Cannot connect to WiFi. Please check data and reset the ESP.");
-      delay(2500);
-    }
+    // Show WiFi status on LCD along with SSID of network
+    lcd.setCursor(0, 0);
+    lcd.print("   WiFi Connected   ");
+    lcd.print(ssid);
+
+    // Define your switches here. Max 14
+    // Format: Alexa invocation name, local port no, on callback, off callback
+    lightOne = new Switch("Light One", 80, lightOneOn, lightOneOff);
+    lightTwo = new Switch("Light Two", 81, lightTwoOn, lightTwoOff);
+    outletOne = new Switch("Outlet One", 82, outletOneOn, outletOneOff);
+    outletTwo = new Switch("Outlet Two", 83, outletTwoOn, outletTwoOff);
+
+    //Serial.println("Adding switches upnp broadcast responder");
+    upnpBroadcastResponder.addDevice(*lightOne);
+    upnpBroadcastResponder.addDevice(*lightTwo);
+    upnpBroadcastResponder.addDevice(*outletOne);
+    upnpBroadcastResponder.addDevice(*outletTwo);
+
+    //Set relay pins to outputs
+    pinMode(14, OUTPUT);
+    pinMode(15, OUTPUT);
+    pinMode(03, OUTPUT);
+    pinMode(01, OUTPUT);
+
+    //Create Polling Message
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("   Polling Status   ");
+    lcd.setCursor(0, 2);
+    lcd.print("  Of Smart Devices  ");
+    delay(2000);
+
+    //Set each relay pin to HIGH this display status messagefor each relay
+    digitalWrite(relayOne, HIGH);   // sets relayOne on
+    lcd.clear();
+    lcd.print("Light  One: Off     ");
+    delay(500);
+    digitalWrite(relayTwo, HIGH);   // sets relayOne on
+    lcd.setCursor(0, 1);
+    lcd.print("Light  Two: Off     ");
+    delay(500);
+    digitalWrite(relayThree, HIGH);   // sets relayOne on
+    lcd.setCursor(0, 2);
+    lcd.print("Outlet One: Off     ");
+    delay(500);
+    digitalWrite(relayFour, HIGH);   // sets relayOne on
+    delay(500);
+    lcd.setCursor(0, 3);
+    lcd.print("Outlet Two: Off     ");
+
+    //Create system initialized message
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    delay(1000);
+    lcd.print(" System Initialzed  ");
+    delay(1000);
+    lcd.setCursor(0, 2);
+    lcd.print(" Ready For Commands ");
+    delay(2000);
+
+    //Set up device status message
+    lcd.clear();
+    lcd.print("Light  One: Off     ");
+    delay(500);
+    lcd.setCursor(0, 1);
+    lcd.print("Light  Two: Off     ");
+    delay(500);
+    lcd.setCursor(0, 2);
+    lcd.print("Outlet One: Off     ");
+    delay(500);
+    lcd.setCursor(0, 3);
+    lcd.print("Outlet Two: Off     ");
+
+
   }
 }
 
 void loop()
 {
-  espalexa.loop();
-  delay(1);
-}
-
-//our callback functions
-void firstLightChanged(uint8_t brightness)
-{
-  //Control the device
-  if (brightness == 255)
-    {
-      digitalWrite(RelayPin1, HIGH);
-      Serial.println("Device1 ON");
-    }
-  else
-  {
-    digitalWrite(RelayPin1, LOW);
-    Serial.println("Device1 OFF");
+  if (wifiConnected) {
+    upnpBroadcastResponder.serverLoop();
+    lightOne->serverLoop();
+    lightTwo->serverLoop();
+    outletOne->serverLoop();
+    outletTwo->serverLoop();
   }
 }
 
-void secondLightChanged(uint8_t brightness)
-{
-  //Control the device 
-  if (brightness == 255)
-    {
-      digitalWrite(RelayPin2, HIGH);
-      Serial.println("Device2 ON");
-    }
-  else
-  {
-    digitalWrite(RelayPin2, LOW);
-    Serial.println("Device2 OFF");
-  }
+void lightOneOn() {
+  // Serial.print("Switch 1 turn on ...");
+  digitalWrite(relayOne, LOW);   // sets relayOne on
+  lcd.setCursor(0, 0);
+  lcd.print("Light  One: On      ");
 }
 
-void thirdLightChanged(uint8_t brightness)
-{
-  //Control the device  
-  if (brightness == 255)
-    {
-      digitalWrite(RelayPin3, HIGH);
-      Serial.println("Device3 ON");
-    }
-  else
-  {
-    digitalWrite(RelayPin3, LOW);
-    Serial.println("Device3 OFF");
-  }
+void lightOneOff() {
+  // Serial.print("Switch 1 turn off ...");
+  digitalWrite(relayOne, HIGH);   // sets relayOne off
+  lcd.setCursor(0, 0);
+  lcd.print("Light  One: Off     ");
 }
 
-void fourthLightChanged(uint8_t brightness)
-{
-  //Control the device 
-  if (brightness == 255)
-    {
-      digitalWrite(RelayPin4, HIGH);
-      Serial.println("Device4 ON");
-    }
-  else
-  {
-    digitalWrite(RelayPin4, LOW);
-    Serial.println("Device4 OFF");
-  }
+void lightTwoOn() {
+  // Serial.print("Switch 2 turn on ...");
+  digitalWrite(relayThree, LOW);   // sets relayTwo on
+  lcd.setCursor(0, 1);
+  lcd.print("Light  Two: On      ");
 }
 
-void fifthLightChanged(uint8_t brightness)
-{
-  //Control the device 
-  if (brightness == 255)
-    {
-      digitalWrite(RelayPin5, HIGH);
-      Serial.println("Device5 ON");
-    }
-  else
-  {
-    digitalWrite(RelayPin5, LOW);
-    Serial.println("Device5 OFF");
-  }
+void lightTwoOff() {
+  // Serial.print("Switch 2 turn off ...");
+  digitalWrite(relayThree, HIGH);   // sets relayTwo Off
+  lcd.setCursor(0, 1);
+  lcd.print("Light  Two: Off     ");
 }
 
-// connect to wifi  returns true if successful or false if not
-boolean connectWifi()
-{
+//sockets
+
+void outletOneOn() {
+  //  Serial.print("Socket 1 turn on ...");
+  digitalWrite(relayFour, LOW);   // sets relayThree on
+  lcd.setCursor(0, 2);
+  lcd.print("Outlet One: On      ");
+}
+
+void outletOneOff() {
+  // Serial.print("Socket 1 turn off ...");
+  digitalWrite(relayFour, HIGH);   // sets relayThree off
+  lcd.setCursor(0, 2);
+  lcd.print("Outlet One: Off     ");
+}
+
+void outletTwoOn() {
+  // Serial.print("Socket 2 turn on ...");
+  digitalWrite(relayTwo, LOW);   // sets relayFour on
+  lcd.setCursor(0, 3);
+  lcd.print("Outlet Two: On      ");
+}
+
+void outletTwoOff() {
+  // Serial.print("Socket 2 turn off ...");
+  digitalWrite(relayTwo, HIGH);   // sets relayFour off
+  lcd.setCursor(0, 3);
+  lcd.print("Outlet Two: Off     ");
+}
+
+// connect to wifi – returns true if successful or false if not
+boolean connectWifi() {
   boolean state = true;
   int i = 0;
 
@@ -182,24 +239,28 @@ boolean connectWifi()
   Serial.println("Connecting to WiFi");
 
   // Wait for connection
-  Serial.print("Connecting...");
+  // Serial.print("Connecting ...");
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
-    Serial.print(".");
-    if (i > 20) {
-      state = false; break;
+    //Serial.print(".");
+    if (i > 10) {
+      state = false;
+      break;
     }
     i++;
   }
-  Serial.println("");
+
   if (state) {
-    Serial.print("Connected to ");
-    Serial.println(ssid);
-    Serial.print("IP address: ");
-    Serial.println(WiFi.localIP());
+    //  Serial.println("");
+    //  Serial.print("Connected to ");
+    //  Serial.println(ssid);
+    // Serial.print("IP address: ");
+    //  Serial.println(WiFi.localIP());
   }
   else {
-    Serial.println("Connection failed.");
+    // Serial.println("");
+    //Serial.println("Connection failed.");
   }
+
   return state;
 }
