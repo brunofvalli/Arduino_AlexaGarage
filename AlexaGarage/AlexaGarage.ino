@@ -16,8 +16,8 @@ bool kitchenLightsOn();
 bool kitchenLightsOff();
 
 // Change this before you flash
-const char* ssid = "June";
-const char* password = "wifipassword";
+const char* ssid = "5124EscambiaTerr";
+const char* password = "M4v1e?Brun0";
 
 boolean wifiConnected = false;
 
@@ -41,8 +41,8 @@ void setup()
     
     // Define your switches here. Max 10
     // Format: Alexa invocation name, local port no, on callback, off callback
-    office = new Switch("office lights", 80, officeLightsOn, officeLightsOff);
-    kitchen = new Switch("kitchen lights", 81, kitchenLightsOn, kitchenLightsOff);
+    office = new Switch("GarageOne", 80, officeLightsOn, officeLightsOff);
+    kitchen = new Switch("GarageTwo", 81, kitchenLightsOn, kitchenLightsOff);
 
     Serial.println("Adding switches upnp broadcast responder");
     upnpBroadcastResponder.addDevice(*office);
