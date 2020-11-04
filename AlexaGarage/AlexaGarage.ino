@@ -6,6 +6,9 @@
 #include "UpnpBroadcastResponder.h"
 #include "CallbackFunction.h"
 
+#define GARAGE_ONE_RELAY_PIN 5
+#define GARAGE_TWO_RELAY_PIN 6
+
 // prototypes
 boolean connectWifi();
 
@@ -60,29 +63,43 @@ void loop()
 	 }
 }
 
+bool pressButton(int relayPin)
+{
+  digitalWrite(relayPin, HIGH);
+  digitalWrite(relayPin, LOW);
+}
+
 bool garageOneOpen() {
-    Serial.println("Switch 1 turn on ...");
+    Serial.println("Opening garage one ...");
+
+    pressButton(GARAGE_ONE_RELAY_PIN);
     
     isGarageOneOpen = true;    
     return isGarageOneOpen;
 }
 
 bool garageOneClose() {
-    Serial.println("Switch 1 turn off ...");
+    Serial.println("Closing garage one ...");
+
+    pressButton(GARAGE_ONE_RELAY_PIN);
 
     isGarageOneOpen = false;
     return isGarageOneOpen;
 }
 
 bool garageTwoOpen() {
-    Serial.println("Switch 2 turn on ...");
+    Serial.println("Opening garage 2 ...");
+
+    pressButton(GARAGE_TWO_RELAY_PIN);
 
     isGarageTwoOpen = true;
     return isGarageTwoOpen;
 }
 
 bool garageTwoClose() {
-  Serial.println("Switch 2 turn off ...");
+  Serial.println("Closing garage 2 ...");
+
+  pressButton(GARAGE_TWO_RELAY_PIN);
 
   isGarageTwoOpen = false;
   return isGarageTwoOpen;
