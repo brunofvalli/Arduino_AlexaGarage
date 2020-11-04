@@ -9,6 +9,12 @@
 #define WIFI_SSID "5124EscambiaTerr"
 #define WIFI_PASS "M4v1e?Brun0"
 
+#define RELAY_1_NAME "GarageOne"
+#define RELAY_2_NAME "GarageTwo"
+#define RELAY_3_NAME "RelayThree"
+#define RELAY_4_NAME "RelayFour"
+
+
 #define SERIAL_BAUDRATE 115200
 #define LED 2
 
@@ -76,23 +82,21 @@ void setup()
   fauxmo.enable(true);
 
   // Device Names for Simulated Wemo switches
-  fauxmo.addDevice("Light One");
-  fauxmo.addDevice("Light Two");
-  fauxmo.addDevice("Outlet One");
-  fauxmo.addDevice("Outlet Two");
-  fauxmo.addDevice("Bed Room");
-  fauxmo.addDevice("Living Room");
-  fauxmo.addDevice("All Devices");
-
+  fauxmo.addDevice(RELAY_1_NAME);
+  fauxmo.addDevice(RELAY_2_NAME);
+  fauxmo.addDevice(RELAY_3_NAME);
+  fauxmo.addDevice(RELAY_4_NAME);
+  
   // fauxmoESP 2.0.0 has changed the callback signature to add the device_id,
   // this way it's easier to match devices to action without having to compare strings.
-  fauxmo.onSetState([](unsigned char device_id, const char *device_name, bool state, unsigned char value) {
+  fauxmo.onSetState([](unsigned char device_id, const char *device_name, bool state, unsigned char value) 
+  {
     Serial.printf("[MAIN] Device #%d (%s) state: %s value: %d\n", device_id, device_name, state ? "ON" : "OFF", value);
     digitalWrite(LED, !state);
 
     //Switching action on detection of device name
 
-    if ((strcmp(device_name, "Light One") == 0))
+    if ((strcmp(device_name, RELAY_1_NAME) == 0))
     {
       if (!state)
       {
@@ -104,19 +108,7 @@ void setup()
       }
     }
 
-    if ((strcmp(device_name, "Light Two") == 0))
-    {
-      if (!state)
-      {
-        digitalWrite(RELAY_3, HIGH);
-      }
-      else
-      {
-        digitalWrite(RELAY_3, LOW);
-      }
-    }
-
-    if ((strcmp(device_name, "Outlet One") == 0))
+    if ((strcmp(device_name, RELAY_2_NAME) == 0))
     {
       if (!state)
       {
@@ -128,60 +120,26 @@ void setup()
       }
     }
 
-    if ((strcmp(device_name, "Outlet Two") == 0))
-    {
-      if (!state)
-      {
-        digitalWrite(RELAY_4, HIGH);
-      }
-      else
-      {
-        digitalWrite(RELAY_4, LOW);
-      }
-    }
-
-    if ((strcmp(device_name, "Bed Room") == 0))
+    if ((strcmp(device_name, RELAY_3_NAME) == 0))
     {
       if (!state)
       {
         digitalWrite(RELAY_3, HIGH);
-        digitalWrite(RELAY_4, HIGH);
       }
       else
       {
         digitalWrite(RELAY_3, LOW);
-        digitalWrite(RELAY_4, LOW);
       }
     }
 
-    if ((strcmp(device_name, "Living Room") == 0))
+    if ((strcmp(device_name, RELAY_4_NAME) == 0))
     {
       if (!state)
       {
-        digitalWrite(RELAY_1, HIGH);
-        digitalWrite(RELAY_2, HIGH);
-      }
-      else
-      {
-        digitalWrite(RELAY_1, LOW);
-        digitalWrite(RELAY_2, LOW);
-      }
-    }
-
-    if ((strcmp(device_name, "All Devices") == 0))
-    {
-      if (!state)
-      {
-        digitalWrite(RELAY_1, HIGH);
-        digitalWrite(RELAY_2, HIGH);
-        digitalWrite(RELAY_3, HIGH);
         digitalWrite(RELAY_4, HIGH);
       }
       else
       {
-        digitalWrite(RELAY_1, LOW);
-        digitalWrite(RELAY_2, LOW);
-        digitalWrite(RELAY_3, LOW);
         digitalWrite(RELAY_4, LOW);
       }
     }
@@ -204,5 +162,6 @@ void loop()
   {
     last = millis();
     Serial.printf("[MAIN] Free heap: %d bytes\n", ESP.getFreeHeap());
+    Serial.printf("[WIFI] STATION Mode, SSID: %s, IP address: %s\n", WiFi.SSID().c_str(), WiFi.localIP().toString().c_str());
   }
 }
