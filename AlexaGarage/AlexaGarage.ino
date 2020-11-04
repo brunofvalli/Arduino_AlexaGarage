@@ -10,10 +10,10 @@
 boolean connectWifi();
 
 //on/off callbacks 
-bool officeLightsOn();
-bool officeLightsOff();
-bool kitchenLightsOn();
-bool kitchenLightsOff();
+bool garageOneOpen();
+bool garageOneClose();
+bool garageTwoOpen();
+bool garageTwoClose();
 
 // Change this before you flash
 const char* ssid = "5124EscambiaTerr";
@@ -23,11 +23,11 @@ boolean wifiConnected = false;
 
 UpnpBroadcastResponder upnpBroadcastResponder;
 
-Switch *office = NULL;
-Switch *kitchen = NULL;
+Switch *garageOne = NULL;
+Switch *garageTwo = NULL;
 
-bool isOfficeLightsOn = false;
-bool isKitchenLightstsOn = false;
+bool isGarageOneOpen = false;
+bool isGarageTwoOpen = false;
 
 void setup()
 {
@@ -41,12 +41,12 @@ void setup()
     
     // Define your switches here. Max 10
     // Format: Alexa invocation name, local port no, on callback, off callback
-    office = new Switch("GarageOne", 80, officeLightsOn, officeLightsOff);
-    kitchen = new Switch("GarageTwo", 81, kitchenLightsOn, kitchenLightsOff);
+    garageOne = new Switch("GarageOne", 80, garageOneOpen, garageOneClose);
+    garageTwo = new Switch("GarageTwo", 81, garageTwoOpen, garageTwoClose);
 
     Serial.println("Adding switches upnp broadcast responder");
-    upnpBroadcastResponder.addDevice(*office);
-    upnpBroadcastResponder.addDevice(*kitchen);
+    upnpBroadcastResponder.addDevice(*garageOne);
+    upnpBroadcastResponder.addDevice(*garageTwo);
   }
 }
  
@@ -55,37 +55,37 @@ void loop()
 	 if(wifiConnected){
       upnpBroadcastResponder.serverLoop();
       
-      kitchen->serverLoop();
-      office->serverLoop();
+      garageTwo->serverLoop();
+      garageOne->serverLoop();
 	 }
 }
 
-bool officeLightsOn() {
+bool garageOneOpen() {
     Serial.println("Switch 1 turn on ...");
     
-    isOfficeLightsOn = true;    
-    return isOfficeLightsOn;
+    isGarageOneOpen = true;    
+    return isGarageOneOpen;
 }
 
-bool officeLightsOff() {
+bool garageOneClose() {
     Serial.println("Switch 1 turn off ...");
 
-    isOfficeLightsOn = false;
-    return isOfficeLightsOn;
+    isGarageOneOpen = false;
+    return isGarageOneOpen;
 }
 
-bool kitchenLightsOn() {
+bool garageTwoOpen() {
     Serial.println("Switch 2 turn on ...");
 
-    isKitchenLightstsOn = true;
-    return isKitchenLightstsOn;
+    isGarageTwoOpen = true;
+    return isGarageTwoOpen;
 }
 
-bool kitchenLightsOff() {
+bool garageTwoClose() {
   Serial.println("Switch 2 turn off ...");
 
-  isKitchenLightstsOn = false;
-  return isKitchenLightstsOn;
+  isGarageTwoOpen = false;
+  return isGarageTwoOpen;
 }
 
 // connect to wifi – returns true if successful or false if not
