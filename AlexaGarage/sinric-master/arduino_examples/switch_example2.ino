@@ -1,7 +1,3 @@
-/*
- Version 0.4 - April 26 2019
-*/ 
-
 #include <Arduino.h>
 #include <ESP8266WiFi.h>
 #include <ESP8266WiFiMulti.h>
@@ -13,47 +9,61 @@ ESP8266WiFiMulti WiFiMulti;
 WebSocketsClient webSocket;
 WiFiClient client;
 
-#define MyApiKey "f6e22704-fa67-4938-b8bf-cca186807067" // TODO: Change to your sinric API Key. Your API Key is displayed on sinric.com dashboard
-#define MySSID "5124EscambiaTerr" // TODO: Change to your Wifi network SSID
-#define MyWifiPassword "M4v1e?Brun0" // TODO: Change to your Wifi network password
-
 #define HEARTBEAT_INTERVAL 300000 // 5 Minutes 
 
 uint64_t heartbeatTimestamp = 0;
 bool isConnected = false;
+ 
+#define MyApiKey "" // TODO: Change to your sinric API Key. Your API Key is displayed on sinric.com dashboard
+#define MySSID "" // TODO: Change to your Wifi network SSID
+#define MyWifiPassword "" // TODO: Change to your Wifi network password
+
+#define DEVICE1 "xxxxx"  //TODO: Device ID of first device
+#define DEVICE2 "xxxxx"  //TODO: Device ID of second device
+ 
+const int relayPin1 = 1; // TODO: Change according to your board
+const int relayPin2 = 2; // TODO: Change according to your board
 
 
 // deviceId is the ID assgined to your smart-home-device in sinric.com dashboard. Copy it from dashboard and paste it here
 
 void turnOn(String deviceId) {
-  if (deviceId == "5fa41e08b1c8c45d66218555") // Device ID of first device
+  if (deviceId == DEVICE1)
   {  
     Serial.print("Turn on device id: ");
     Serial.println(deviceId);
-  } 
-  else if (deviceId == "5fa41f42b1c8c45d66218573") // Device ID of second device
-  { 
+    
+     digitalWrite(relayPin1, HIGH); // turn on relay with voltage HIGH
+  }
+  else	if (deviceId == DEVICE2)
+  {  
     Serial.print("Turn on device id: ");
     Serial.println(deviceId);
-  }
+    
+     digitalWrite(relayPin2, HIGH); // turn on relay with voltage HIGH
+  }  
   else {
     Serial.print("Turn on for unknown device id: ");
-    Serial.println(deviceId);    
+    Serial.println(deviceId);
   }     
 }
 
 void turnOff(String deviceId) {
-   if (deviceId == "5fa41e08b1c8c45d66218555") // Device ID of first device
+   if (deviceId == DEVICE1)
    {  
      Serial.print("Turn off Device ID: ");
      Serial.println(deviceId);
+     
+     digitalWrite(relayPin1, LOW);  // turn off relay with voltage LOW
    }
-   else if (deviceId == "5axxxxxxxxxxxxxxxxxxx") // Device ID of second device
-   { 
+   else if (deviceId == DEVICE2)
+   {  
      Serial.print("Turn off Device ID: ");
-     Serial.println(deviceId);
-  }
-  else {
+     Serial.println(relayPin2);
+     
+     digitalWrite(relayPin2, LOW);  // turn off relay with voltage LOW
+   }
+   else {
      Serial.print("Turn off for unknown device id: ");
      Serial.println(deviceId);    
   }
@@ -80,6 +90,7 @@ void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
 
         // For Light device type
         // Look at the light example in github
+          
 #if ARDUINOJSON_VERSION_MAJOR == 5
         DynamicJsonBuffer jsonBuffer;
         JsonObject& json = jsonBuffer.parseObject((char*)payload);
@@ -99,11 +110,6 @@ void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
                 turnOff(deviceId);
             }
         }
-        else if (action == "SetTargetTemperature") {
-            String deviceId = json ["deviceId"];     
-            String action = json ["action"];
-            String value = json ["value"];
-        }
         else if (action == "test") {
             Serial.println("[WSc] received test command from sinric.com");
         }
@@ -117,6 +123,9 @@ void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
 
 void setup() {
   Serial.begin(115200);
+    
+  pinMode(relayPin1, OUTPUT);
+  pinMode(relayPin2, OUTPUT);
   
   WiFiMulti.addAP(MySSID, MyWifiPassword);
   Serial.println();
@@ -160,4 +169,4 @@ void loop() {
   }   
 }
 
-// If you want a push button: https://github.com/kakopappa/sinric/blob/master/arduino_examples/switch_with_push_button.ino  
+ 

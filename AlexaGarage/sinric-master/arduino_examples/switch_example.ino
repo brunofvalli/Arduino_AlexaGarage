@@ -13,9 +13,9 @@ ESP8266WiFiMulti WiFiMulti;
 WebSocketsClient webSocket;
 WiFiClient client;
 
-#define MyApiKey "f6e22704-fa67-4938-b8bf-cca186807067" // TODO: Change to your sinric API Key. Your API Key is displayed on sinric.com dashboard
-#define MySSID "5124EscambiaTerr" // TODO: Change to your Wifi network SSID
-#define MyWifiPassword "M4v1e?Brun0" // TODO: Change to your Wifi network password
+#define MyApiKey "" // TODO: Change to your sinric API Key. Your API Key is displayed on sinric.com dashboard
+#define MySSID "" // TODO: Change to your Wifi network SSID
+#define MyWifiPassword "" // TODO: Change to your Wifi network password
 
 #define HEARTBEAT_INTERVAL 300000 // 5 Minutes 
 
@@ -26,12 +26,12 @@ bool isConnected = false;
 // deviceId is the ID assgined to your smart-home-device in sinric.com dashboard. Copy it from dashboard and paste it here
 
 void turnOn(String deviceId) {
-  if (deviceId == "5fa41e08b1c8c45d66218555") // Device ID of first device
+  if (deviceId == "5axxxxxxxxxxxxxxxxxxx") // Device ID of first device
   {  
     Serial.print("Turn on device id: ");
     Serial.println(deviceId);
   } 
-  else if (deviceId == "5fa41f42b1c8c45d66218573") // Device ID of second device
+  else if (deviceId == "5axxxxxxxxxxxxxxxxxxx") // Device ID of second device
   { 
     Serial.print("Turn on device id: ");
     Serial.println(deviceId);
@@ -43,7 +43,7 @@ void turnOn(String deviceId) {
 }
 
 void turnOff(String deviceId) {
-   if (deviceId == "5fa41e08b1c8c45d66218555") // Device ID of first device
+   if (deviceId == "5axxxxxxxxxxxxxxxxxxx") // Device ID of first device
    {  
      Serial.print("Turn off Device ID: ");
      Serial.println(deviceId);

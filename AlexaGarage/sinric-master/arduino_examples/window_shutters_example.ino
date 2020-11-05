@@ -1,63 +1,25 @@
 /*
- Version 0.4 - April 26 2019
+ Version 0.1 - Feb 24 2018
 */ 
 
 #include <Arduino.h>
 #include <ESP8266WiFi.h>
 #include <ESP8266WiFiMulti.h>
 #include <WebSocketsClient.h> //  https://github.com/kakopappa/sinric/wiki/How-to-add-dependency-libraries
-#include <ArduinoJson.h> // https://github.com/kakopappa/sinric/wiki/How-to-add-dependency-libraries (use the correct version)
-#include <StreamString.h>
+#include <ArduinoJson.h> // https://github.com/kakopappa/sinric/wiki/How-to-add-dependency-libraries
 
 ESP8266WiFiMulti WiFiMulti;
 WebSocketsClient webSocket;
-WiFiClient client;
 
-#define MyApiKey "f6e22704-fa67-4938-b8bf-cca186807067" // TODO: Change to your sinric API Key. Your API Key is displayed on sinric.com dashboard
-#define MySSID "5124EscambiaTerr" // TODO: Change to your Wifi network SSID
-#define MyWifiPassword "M4v1e?Brun0" // TODO: Change to your Wifi network password
+#define MyApiKey "" // TODO: Change to your sinric API Key. Your API Key is displayed on sinric.com dashboard
+#define MySSID "" // TODO: Change to your Wifi network SSID
+#define MyWifiPassword "" // TODO: Change to your Wifi network password
 
 #define HEARTBEAT_INTERVAL 300000 // 5 Minutes 
 
 uint64_t heartbeatTimestamp = 0;
 bool isConnected = false;
-
-
-// deviceId is the ID assgined to your smart-home-device in sinric.com dashboard. Copy it from dashboard and paste it here
-
-void turnOn(String deviceId) {
-  if (deviceId == "5fa41e08b1c8c45d66218555") // Device ID of first device
-  {  
-    Serial.print("Turn on device id: ");
-    Serial.println(deviceId);
-  } 
-  else if (deviceId == "5fa41f42b1c8c45d66218573") // Device ID of second device
-  { 
-    Serial.print("Turn on device id: ");
-    Serial.println(deviceId);
-  }
-  else {
-    Serial.print("Turn on for unknown device id: ");
-    Serial.println(deviceId);    
-  }     
-}
-
-void turnOff(String deviceId) {
-   if (deviceId == "5fa41e08b1c8c45d66218555") // Device ID of first device
-   {  
-     Serial.print("Turn off Device ID: ");
-     Serial.println(deviceId);
-   }
-   else if (deviceId == "5axxxxxxxxxxxxxxxxxxx") // Device ID of second device
-   { 
-     Serial.print("Turn off Device ID: ");
-     Serial.println(deviceId);
-  }
-  else {
-     Serial.print("Turn off for unknown device id: ");
-     Serial.println(deviceId);    
-  }
-}
+ 
 
 void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
   switch(type) {
@@ -75,11 +37,13 @@ void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
         Serial.printf("[WSc] get text: %s\n", payload);
         // Example payloads
 
-        // For Switch or Light device types
-        // {"deviceId": xxxx, "action": "setPowerState", value: "ON"} // https://developer.amazon.com/docs/device-apis/alexa-powercontroller.html
+        // On Off format https://developer.amazon.com/docs/device-apis/alexa-powercontroller.html
+        // {"deviceId": xxxx, "action": "setPowerState", value: "ON"} 
 
-        // For Light device type
-        // Look at the light example in github
+        // For Window Shutters https://developer.amazon.com/docs/device-apis/alexa-channelcontroller.html
+        // {"deviceId":"5a90faedd923a349530330c3","action":"SkipChannels","value":{"channelCount":1}} 
+        // {"deviceId":"5a90faedd923a349530330c3","action":"ChangeChannel","value":{"channel":{"number":"200"},"channelMetadata":{}}}
+
 #if ARDUINOJSON_VERSION_MAJOR == 5
         DynamicJsonBuffer jsonBuffer;
         JsonObject& json = jsonBuffer.parseObject((char*)payload);
@@ -90,28 +54,43 @@ void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
 #endif        
         String deviceId = json ["deviceId"];     
         String action = json ["action"];
+
+        /*if (deviceId == "5axxxxxxxxxxxxxxxxxxx") // Device ID of first device
+        { 
+          // Check device id if you have multiple devices.
+        } */ 
         
-        if(action == "setPowerState") { // Switch or Light
+        if(action == "setPowerState") { // On or Off
             String value = json ["value"];
             if(value == "ON") {
-                turnOn(deviceId);
+                //turnOn(deviceId);
             } else {
-                turnOff(deviceId);
+                //turnOff(deviceId);
             }
         }
-        else if (action == "SetTargetTemperature") {
-            String deviceId = json ["deviceId"];     
-            String action = json ["action"];
-            String value = json ["value"];
+        else if(action == "SkipChannels") { 
+           // Alexa, channel up on device
+           String value = json["value"]["channelCount"];
+           Serial.println("[WSc] value: " + value); 
+
+           // if value: 1 == UP
+           // if value: -1 == Down
+
+        }
+        else if(action == "ChangeChannel") { 
+          // Alexa, change channel to PBS on device      
+          
         }
         else if (action == "test") {
-            Serial.println("[WSc] received test command from sinric.com");
+                Serial.println("[WSc] received test command from sinric.com");
+            }
         }
-      }
-      break;
+    
+    break;
     case WStype_BIN:
       Serial.printf("[WSc] get binary length: %u\n", length);
       break;
+    default: break;
   }
 }
 
@@ -159,5 +138,3 @@ void loop() {
       }
   }   
 }
-
-// If you want a push button: https://github.com/kakopappa/sinric/blob/master/arduino_examples/switch_with_push_button.ino  

@@ -1,41 +1,38 @@
-/*
- Version 0.4 - April 26 2019
-*/ 
-
 #include <Arduino.h>
 #include <ESP8266WiFi.h>
 #include <ESP8266WiFiMulti.h>
 #include <WebSocketsClient.h> //  https://github.com/kakopappa/sinric/wiki/How-to-add-dependency-libraries
-#include <ArduinoJson.h> // https://github.com/kakopappa/sinric/wiki/How-to-add-dependency-libraries (use the correct version)
+#include <ArduinoJson.h> // https://github.com/kakopappa/sinric/wiki/How-to-add-dependency-libraries
 #include <StreamString.h>
 
 ESP8266WiFiMulti WiFiMulti;
 WebSocketsClient webSocket;
 WiFiClient client;
 
-#define MyApiKey "f6e22704-fa67-4938-b8bf-cca186807067" // TODO: Change to your sinric API Key. Your API Key is displayed on sinric.com dashboard
-#define MySSID "5124EscambiaTerr" // TODO: Change to your Wifi network SSID
-#define MyWifiPassword "M4v1e?Brun0" // TODO: Change to your Wifi network password
+#define MyApiKey "" // TODO: Change to your sinric API Key. Your API Key is displayed on sinric.com dashboard
+#define MySSID "" // TODO: Change to your Wifi network SSID
+#define MyWifiPassword "" // TODO: Change to your Wifi network password
 
 #define HEARTBEAT_INTERVAL 300000 // 5 Minutes 
+
+const int relayPin = D1;
 
 uint64_t heartbeatTimestamp = 0;
 bool isConnected = false;
 
+void setPowerStateOnServer(String deviceId, String value);
+void setTargetTemperatureOnServer(String deviceId, String value, String scale);
 
 // deviceId is the ID assgined to your smart-home-device in sinric.com dashboard. Copy it from dashboard and paste it here
 
 void turnOn(String deviceId) {
-  if (deviceId == "5fa41e08b1c8c45d66218555") // Device ID of first device
+  if (deviceId == "5axxxxxxxxxxxxxxxxxxx") // Device ID of first device
   {  
     Serial.print("Turn on device id: ");
     Serial.println(deviceId);
+    
+     digitalWrite(relayPin, HIGH); // turn on relay with voltage HIGH
   } 
-  else if (deviceId == "5fa41f42b1c8c45d66218573") // Device ID of second device
-  { 
-    Serial.print("Turn on device id: ");
-    Serial.println(deviceId);
-  }
   else {
     Serial.print("Turn on for unknown device id: ");
     Serial.println(deviceId);    
@@ -43,17 +40,14 @@ void turnOn(String deviceId) {
 }
 
 void turnOff(String deviceId) {
-   if (deviceId == "5fa41e08b1c8c45d66218555") // Device ID of first device
+   if (deviceId == "5axxxxxxxxxxxxxxxxxxx") // Device ID of first device
    {  
      Serial.print("Turn off Device ID: ");
      Serial.println(deviceId);
+     
+     digitalWrite(relayPin, LOW);  // turn off relay with voltage LOW
    }
-   else if (deviceId == "5axxxxxxxxxxxxxxxxxxx") // Device ID of second device
-   { 
-     Serial.print("Turn off Device ID: ");
-     Serial.println(deviceId);
-  }
-  else {
+   else {
      Serial.print("Turn off for unknown device id: ");
      Serial.println(deviceId);    
   }
@@ -80,6 +74,7 @@ void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
 
         // For Light device type
         // Look at the light example in github
+          
 #if ARDUINOJSON_VERSION_MAJOR == 5
         DynamicJsonBuffer jsonBuffer;
         JsonObject& json = jsonBuffer.parseObject((char*)payload);
@@ -117,6 +112,9 @@ void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
 
 void setup() {
   Serial.begin(115200);
+  
+  // Relay PIN eg: https://github.com/wemos/D1_mini_Examples/blob/master/examples/04.Shields/Relay_Shield/Blink/Blink.ino
+  pinMode(relayPin, OUTPUT);
   
   WiFiMulti.addAP(MySSID, MyWifiPassword);
   Serial.println();
@@ -160,4 +158,65 @@ void loop() {
   }   
 }
 
-// If you want a push button: https://github.com/kakopappa/sinric/blob/master/arduino_examples/switch_with_push_button.ino  
+// If you are going to use a push button to on/off the switch manually, use this function to update the status on the server
+// so it will reflect on Alexa app.
+// eg: setPowerStateOnServer("deviceid", "ON")
+
+// Call ONLY If status changed. DO NOT CALL THIS IN loop() and overload the server. 
+void setPowerStateOnServer(String deviceId, String value) {
+#if ARDUINOJSON_VERSION_MAJOR == 5
+  DynamicJsonBuffer jsonBuffer;
+  JsonObject& root = jsonBuffer.createObject();
+#endif
+#if ARDUINOJSON_VERSION_MAJOR == 6        
+  DynamicJsonDocument root(1024);
+#endif        
+  root["deviceId"] = deviceId;
+  root["action"] = "setPowerState";
+  root["value"] = value;
+  StreamString databuf;
+#if ARDUINOJSON_VERSION_MAJOR == 5
+  root.printTo(databuf);
+#endif
+#if ARDUINOJSON_VERSION_MAJOR == 6        
+  serializeJson(root, databuf);
+#endif  
+  
+  webSocket.sendTXT(databuf);
+}
+
+//eg: setPowerStateOnServer("deviceid", "CELSIUS", "25.0")
+
+// Call ONLY If status changed. DO NOT CALL THIS IN loop() and overload the server. 
+void setTargetTemperatureOnServer(String deviceId, String value, String scale) {
+#if ARDUINOJSON_VERSION_MAJOR == 5
+  DynamicJsonBuffer jsonBuffer;
+  JsonObject& root = jsonBuffer.createObject();
+#endif
+#if ARDUINOJSON_VERSION_MAJOR == 6        
+  DynamicJsonDocument root(1024);
+#endif        
+  root["action"] = "SetTargetTemperature";
+  root["deviceId"] = deviceId;
+
+#if ARDUINOJSON_VERSION_MAJOR == 5
+  JsonObject& valueObj = root.createNestedObject("value");
+  JsonObject& targetSetpoint = valueObj.createNestedObject("targetSetpoint");
+#endif
+#if ARDUINOJSON_VERSION_MAJOR == 6        
+  JsonObject valueObj = root.createNestedObject("value");
+  JsonObject targetSetpoint = valueObj.createNestedObject("targetSetpoint");
+#endif  
+  targetSetpoint["value"] = value;
+  targetSetpoint["scale"] = scale;
+   
+  StreamString databuf;
+#if ARDUINOJSON_VERSION_MAJOR == 5
+  root.printTo(databuf);
+#endif
+#if ARDUINOJSON_VERSION_MAJOR == 6        
+  serializeJson(root, databuf);
+#endif  
+  
+  webSocket.sendTXT(databuf);
+}

@@ -1,62 +1,53 @@
 /*
- Version 0.4 - April 26 2019
+ Version 0.1 - April 18 2019
 */ 
 
 #include <Arduino.h>
 #include <ESP8266WiFi.h>
 #include <ESP8266WiFiMulti.h>
 #include <WebSocketsClient.h> //  https://github.com/kakopappa/sinric/wiki/How-to-add-dependency-libraries
-#include <ArduinoJson.h> // https://github.com/kakopappa/sinric/wiki/How-to-add-dependency-libraries (use the correct version)
+#include <ArduinoJson.h> // https://github.com/kakopappa/sinric/wiki/How-to-add-dependency-libraries
 #include <StreamString.h>
+
+#include <AceButton.h> // https://github.com/bxparks/AceButton
+using namespace ace_button;
 
 ESP8266WiFiMulti WiFiMulti;
 WebSocketsClient webSocket;
 WiFiClient client;
 
-#define MyApiKey "f6e22704-fa67-4938-b8bf-cca186807067" // TODO: Change to your sinric API Key. Your API Key is displayed on sinric.com dashboard
-#define MySSID "5124EscambiaTerr" // TODO: Change to your Wifi network SSID
-#define MyWifiPassword "M4v1e?Brun0" // TODO: Change to your Wifi network password
+#define MyApiKey "" // TODO: Change to your sinric API Key. Your API Key is displayed on sinric.com dashboard
+#define MySSID "" // TODO: Change to your Wifi network SSID
+#define MyWifiPassword "" // TODO: Change to your Wifi network password
 
 #define HEARTBEAT_INTERVAL 300000 // 5 Minutes 
 
 uint64_t heartbeatTimestamp = 0;
 bool isConnected = false;
 
+// Switch
+const int BUTTON_PIN = D1; //TODO:  pin number attached to the button.
+AceButton button(BUTTON_PIN);
+ 
+void handleEvent(AceButton*, uint8_t, uint8_t);
+void setPowerStateOnServer(String deviceId, String value);
 
 // deviceId is the ID assgined to your smart-home-device in sinric.com dashboard. Copy it from dashboard and paste it here
 
 void turnOn(String deviceId) {
-  if (deviceId == "5fa41e08b1c8c45d66218555") // Device ID of first device
+  if (deviceId == "") // Device ID of first device
   {  
     Serial.print("Turn on device id: ");
     Serial.println(deviceId);
-  } 
-  else if (deviceId == "5fa41f42b1c8c45d66218573") // Device ID of second device
-  { 
-    Serial.print("Turn on device id: ");
-    Serial.println(deviceId);
-  }
-  else {
-    Serial.print("Turn on for unknown device id: ");
-    Serial.println(deviceId);    
-  }     
+  }    
 }
 
 void turnOff(String deviceId) {
-   if (deviceId == "5fa41e08b1c8c45d66218555") // Device ID of first device
+   if (deviceId == "") // Device ID of first device
    {  
      Serial.print("Turn off Device ID: ");
      Serial.println(deviceId);
-   }
-   else if (deviceId == "5axxxxxxxxxxxxxxxxxxx") // Device ID of second device
-   { 
-     Serial.print("Turn off Device ID: ");
-     Serial.println(deviceId);
-  }
-  else {
-     Serial.print("Turn off for unknown device id: ");
-     Serial.println(deviceId);    
-  }
+   }  
 }
 
 void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
@@ -80,6 +71,7 @@ void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
 
         // For Light device type
         // Look at the light example in github
+          
 #if ARDUINOJSON_VERSION_MAJOR == 5
         DynamicJsonBuffer jsonBuffer;
         JsonObject& json = jsonBuffer.parseObject((char*)payload);
@@ -99,11 +91,6 @@ void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
                 turnOff(deviceId);
             }
         }
-        else if (action == "SetTargetTemperature") {
-            String deviceId = json ["deviceId"];     
-            String action = json ["action"];
-            String value = json ["value"];
-        }
         else if (action == "test") {
             Serial.println("[WSc] received test command from sinric.com");
         }
@@ -116,7 +103,7 @@ void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
 }
 
 void setup() {
-  Serial.begin(115200);
+  Serial.begin(9600);
   
   WiFiMulti.addAP(MySSID, MyWifiPassword);
   Serial.println();
@@ -135,6 +122,13 @@ void setup() {
     Serial.println(WiFi.localIP());
   }
 
+  // Setup button
+  // Button uses the built-in pull up register.
+  pinMode(BUTTON_PIN, INPUT_PULLUP); // INPUT_PULLUP so no need a 10K resistor
+
+  button.init(BUTTON_PIN);
+  button.setEventHandler(handleEvent);
+
   // server address, port and URL
   webSocket.begin("iot.sinric.com", 80, "/");
 
@@ -148,7 +142,8 @@ void setup() {
 
 void loop() {
   webSocket.loop();
-  
+  button.check();
+
   if(isConnected) {
       uint64_t now = millis();
       
@@ -159,5 +154,39 @@ void loop() {
       }
   }   
 }
+ 
+void setPowerStateOnServer(String deviceId, String value) {
+#if ARDUINOJSON_VERSION_MAJOR == 5
+  DynamicJsonBuffer jsonBuffer;
+  JsonObject& root = jsonBuffer.createObject();
+#endif
+#if ARDUINOJSON_VERSION_MAJOR == 6        
+  DynamicJsonDocument root(1024);
+#endif        
 
-// If you want a push button: https://github.com/kakopappa/sinric/blob/master/arduino_examples/switch_with_push_button.ino  
+  root["deviceId"] = deviceId;
+  root["action"] = "setPowerState";
+  root["value"] = value;
+  StreamString databuf;
+#if ARDUINOJSON_VERSION_MAJOR == 5
+  root.printTo(databuf);
+#endif
+#if ARDUINOJSON_VERSION_MAJOR == 6        
+  serializeJson(root, databuf);
+#endif  
+  webSocket.sendTXT(databuf);
+}
+
+void handleEvent(AceButton* /* button */, uint8_t eventType,
+    uint8_t /* buttonState */) {
+  switch (eventType) {
+    case AceButton::kEventPressed:
+      Serial.println("kEventPressed");
+      setPowerStateOnServer("<device id>", "ON");
+      break;
+    case AceButton::kEventReleased:
+      Serial.println("kEventReleased");
+      break;
+  }
+}
+ 
