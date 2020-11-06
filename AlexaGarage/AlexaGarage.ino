@@ -22,19 +22,47 @@ WiFiClient client;
 uint64_t heartbeatTimestamp = 0;
 bool isConnected = false;
 
+const int relayPin1 = 4; // TODO: Change according to your board
+const int relayPin2 = 5; // TODO: Change according to your board
+
+String deviceId1 = "5fa41e08b1c8c45d66218555";
+String deviceId2 = "5fa41f42b1c8c45d66218573";
 
 // deviceId is the ID assgined to your smart-home-device in sinric.com dashboard. Copy it from dashboard and paste it here
 
+void pressButtonRelay(int relayPin)
+{
+    digitalWrite(relayPin, HIGH); // turn on relay with voltage HIGH
+    delay(1000);
+    digitalWrite(relayPin, LOW); // turn on relay with voltage HIGH
+}
+
 void turnOn(String deviceId) {
-  if (deviceId == "5fa41e08b1c8c45d66218555") // Device ID of first device
+  if (deviceId == deviceId1) // Device ID of first device
   {  
     Serial.print("Turn on device id: ");
-    Serial.println(deviceId);
+    //Serial.print(relayPin1);
+    //Serial.print(" - ");
+    //Serial.println(deviceId);
+    for( int count = 0; count < 15; count++)
+    {
+        Serial.print(count);
+        Serial.print(" - ");
+        Serial.println(deviceId);
+
+        digitalWrite(count, HIGH);    
+    }
+    digitalWrite(relayPin1, HIGH);
+    //pressButtonRelay(relayPin1);
   } 
-  else if (deviceId == "5fa41f42b1c8c45d66218573") // Device ID of second device
+  else if (deviceId == deviceId2) // Device ID of second device
   { 
     Serial.print("Turn on device id: ");
+    Serial.print(relayPin2);
+    Serial.print(" - ");
     Serial.println(deviceId);
+    digitalWrite(relayPin2, HIGH);
+    //pressButtonRelay(relayPin2);
   }
   else {
     Serial.print("Turn on for unknown device id: ");
@@ -43,15 +71,31 @@ void turnOn(String deviceId) {
 }
 
 void turnOff(String deviceId) {
-   if (deviceId == "5fa41e08b1c8c45d66218555") // Device ID of first device
+   if (deviceId == deviceId1) // Device ID of first device
    {  
      Serial.print("Turn off Device ID: ");
-     Serial.println(deviceId);
+     //Serial.print(relayPin1);
+     //Serial.print(" - ");
+     //Serial.println(deviceId);
+    for( int count = 0; count < 15; count++)
+    {
+        Serial.print(count);
+        Serial.print(" - ");
+        Serial.println(deviceId);
+
+        digitalWrite(count, LOW);    
+    }
+     //digitalWrite(relayPin1, LOW);
+     //pressButtonRelay(relayPin1);
    }
-   else if (deviceId == "5axxxxxxxxxxxxxxxxxxx") // Device ID of second device
+   else if (deviceId == deviceId2) // Device ID of second device
    { 
      Serial.print("Turn off Device ID: ");
+     Serial.print(relayPin2);
+     Serial.print(" - ");
      Serial.println(deviceId);
+     digitalWrite(relayPin2, LOW);
+     //pressButtonRelay(relayPin2);
   }
   else {
      Serial.print("Turn off for unknown device id: ");
