@@ -1,0 +1,4 @@
+Go here to get a firmware built for the ESP8266
+https://nodemcu-build.com/
+
+Then use the exe found here to use the bin to update the board

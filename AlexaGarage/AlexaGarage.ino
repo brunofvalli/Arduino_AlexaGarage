@@ -188,6 +188,9 @@ void setup() {
   
   // try again every 5000ms if connection has failed
   webSocket.setReconnectInterval(5000);   // If you see 'class WebSocketsClient' has no member named 'setReconnectInterval' error update arduinoWebSockets
+
+  pinMode(4, OUTPUT);
+  pinMode(5, OUTPUT);
 }
 
 void loop() {
