@@ -41,19 +41,12 @@ void turnOn(String deviceId) {
   if (deviceId == deviceId1) // Device ID of first device
   {  
     Serial.print("Turn on device id: ");
-    //Serial.print(relayPin1);
-    //Serial.print(" - ");
-    //Serial.println(deviceId);
-    for( int count = 0; count < 15; count++)
-    {
-        Serial.print(count);
-        Serial.print(" - ");
-        Serial.println(deviceId);
-
-        digitalWrite(count, HIGH);    
-    }
+    Serial.print(relayPin1);
+    Serial.print(" - ");
+    Serial.println(deviceId);
+    
     digitalWrite(relayPin1, HIGH);
-    //pressButtonRelay(relayPin1);
+    pressButtonRelay(relayPin1);
   } 
   else if (deviceId == deviceId2) // Device ID of second device
   { 
@@ -62,7 +55,7 @@ void turnOn(String deviceId) {
     Serial.print(" - ");
     Serial.println(deviceId);
     digitalWrite(relayPin2, HIGH);
-    //pressButtonRelay(relayPin2);
+    pressButtonRelay(relayPin2);
   }
   else {
     Serial.print("Turn on for unknown device id: ");
@@ -74,19 +67,12 @@ void turnOff(String deviceId) {
    if (deviceId == deviceId1) // Device ID of first device
    {  
      Serial.print("Turn off Device ID: ");
-     //Serial.print(relayPin1);
-     //Serial.print(" - ");
-     //Serial.println(deviceId);
-    for( int count = 0; count < 15; count++)
-    {
-        Serial.print(count);
-        Serial.print(" - ");
-        Serial.println(deviceId);
+     Serial.print(relayPin1);
+     Serial.print(" - ");
+     Serial.println(deviceId);
 
-        digitalWrite(count, LOW);    
-    }
-     //digitalWrite(relayPin1, LOW);
-     //pressButtonRelay(relayPin1);
+     digitalWrite(relayPin1, LOW);
+     pressButtonRelay(relayPin1);
    }
    else if (deviceId == deviceId2) // Device ID of second device
    { 
@@ -94,8 +80,9 @@ void turnOff(String deviceId) {
      Serial.print(relayPin2);
      Serial.print(" - ");
      Serial.println(deviceId);
+     
      digitalWrite(relayPin2, LOW);
-     //pressButtonRelay(relayPin2);
+     pressButtonRelay(relayPin2);
   }
   else {
      Serial.print("Turn off for unknown device id: ");
