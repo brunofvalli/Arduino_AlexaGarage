@@ -38,6 +38,7 @@ void setup()
   delay(1000);
   WiFi.begin(ssid, password);
   Serial.println("Connected to the WiFi network"); //Display feedback on the serial monitor
+  LcdPrint("Connect WiFi",ssid);
   Serial.println(WiFi.localIP());
 }
 
@@ -66,11 +67,11 @@ void loop()
         DateEntry.remove(0, To_remove + 17);               //I remove it and everything that's before
         To_remove = DateEntry.indexOf("<");                 //I look for the position of this symbol ">"
         DateEntry.remove(To_remove, (DateEntry.length() - To_remove));   //I remove it and everything that's after
-
       }
     }
     else //If we can't get data
     {
+      LcdPrint(("[HTTP] GET... failed, error: %s\n", http.errorToString(httpCode).c_str()),"");
       Serial.printf("[HTTP] GET... failed, error: %s\n", http.errorToString(httpCode).c_str());
     }
 
@@ -90,12 +91,17 @@ void loop()
     Serial.println("Reconnecting to WiFi..");
     delay(10000);
   }
-  lcd.clear();
-  lcd.setCursor(0, 0);
-  lcd.print(DateEntry);
-
-  lcd.setCursor(0, 1);
-  lcd.print(DayOfYear);
+  LcdPrint(DateEntry, DayOfYear);
 
   delay(1000);
+}
+
+void LcdPrint(String line1, String line2)
+{
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print(line1);
+
+    lcd.setCursor(0, 1);
+    lcd.print(line2);
 }
